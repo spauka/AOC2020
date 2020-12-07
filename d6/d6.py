@@ -5,7 +5,7 @@ with open("input.txt") as f:
         if not (line := line.strip()):
             all_answers.append(answers)
             answers = set()
-        answers.update(list(line))
+        answers.update(line)
 all_answers.append(answers)
 
 print(sum(len(x) for x in all_answers))
@@ -19,9 +19,9 @@ with open("input.txt") as f:
             answers = None
             continue
         if answers is None:
-            answers = set(list(line))
+            answers = set(line)
         else:
-            answers.intersection_update(list(line))
+            answers.intersection_update(line)
 all_answers.append(answers)
 
 print(sum(len(x) for x in all_answers))

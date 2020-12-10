@@ -1,5 +1,3 @@
-import re
-
 instr = []
 
 with open("input") as f:

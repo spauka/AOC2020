@@ -1,10 +1,9 @@
-import sys
+import itertools
 import numpy as np
 from numpy.lib.stride_tricks import as_strided
-import itertools
 
 with open("input.txt") as f:
-    seats = np.array(list(list(c=="L" for c in l.strip()) for l in f), dtype="int").T
+    seats: np.ndarray = np.array(list(list(c=="L" for c in l.strip()) for l in f), dtype="int").T
 filled = np.zeros((seats.shape[0]+2, seats.shape[1]+2), dtype="int")
 
 sub_shape = (3, 3)
@@ -26,38 +25,36 @@ while (nsum := np.sum(filled)) != psum:
     psum = nsum
 
 print(f"Part 1: {nsum}")
-sys.exit(0)
 
-def num_visible(inp, coord):
+def num_visible(seats, filled, coord):
     count = 0
     for offs in itertools.product(range(-1, 2), repeat=2):
         if all(i == 0 for i in offs):
             continue
-        new_coord = coord
+        new_coord = list(coord)
         while True:
-            new_coord = tuple(i+j for i, j in zip(new_coord, offs))
-            if any(i < 0 or i >= l for i, l in zip(new_coord, inp.shape)):
+            new_coord[0] += offs[0]
+            new_coord[1] += offs[1]
+            if new_coord[0] not in range(seats.shape[0]) or new_coord[1] not in range(seats.shape[1]):
                 break
-            if inp[new_coord] == "#":
+            if filled.item(*new_coord):
                 count += 1
                 break
-            elif inp[new_coord] == "L":
+            elif seats.item(*new_coord):
                 break
     return count
 
-changed = True
-inp = inp2.copy()
-iterc = 0
-while changed:
+filled = np.zeros_like(seats, dtype="int")
+new_filled = filled.copy()
+psum = -1
+while (nsum := np.sum(filled)) != psum:
     changed = False
-    new = inp.copy()
-    for coord in itertools.product(*map(range, inp.shape)):
-        na = num_visible(inp, coord)
-        if inp[coord] == "L" and na == 0:
-            new[coord] = "#"
-            changed = True
-        elif inp[coord] == "#" and na >= 5:
-            new[coord] = "L"
-            changed = True
-    inp = new.copy()
-print(f"Part 2: {np.sum(inp == '#')}")
+    for coord in itertools.product(*map(range, seats.shape)):
+        na = num_visible(seats, filled, coord)
+        if seats[coord] and na == 0:
+            new_filled[coord] = 1
+        elif filled[coord] and na >= 5:
+            new_filled[coord] = 0
+    filled = new_filled.copy()
+    psum = nsum
+print(f"Part 2: {nsum}")

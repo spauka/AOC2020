@@ -35,7 +35,8 @@ def num_visible(seats, filled, coord):
         while True:
             new_coord[0] += offs[0]
             new_coord[1] += offs[1]
-            if new_coord[0] not in range(seats.shape[0]) or new_coord[1] not in range(seats.shape[1]):
+            if (new_coord[0] not in range(seats.shape[0]) or
+                new_coord[1] not in range(seats.shape[1])):
                 break
             if filled.item(*new_coord):
                 count += 1

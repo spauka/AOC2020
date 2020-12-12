@@ -26,32 +26,32 @@ while (nsum := np.sum(filled)) != psum:
 
 print(f"Part 1: {nsum}")
 
-def num_visible(seats, filled, coord):
-    count = 0
-    for offs in itertools.product(range(-1, 2), repeat=2):
-        if all(i == 0 for i in offs):
-            continue
-        new_coord = list(coord)
-        while True:
-            new_coord[0] += offs[0]
-            new_coord[1] += offs[1]
-            if (new_coord[0] not in range(seats.shape[0]) or
-                new_coord[1] not in range(seats.shape[1])):
-                break
-            if filled.item(*new_coord):
-                count += 1
-                break
-            elif seats.item(*new_coord):
-                break
-    return count
+def precomp_visible(seats, nearest):
+    for coord in itertools.product(*map(range, seats.shape)):
+        nearest[coord] = []
+        for offs in itertools.product(range(-1, 2), repeat=2):
+            if all(i == 0 for i in offs):
+                continue
+            new_coord = list(coord)
+            while True:
+                new_coord[0] += offs[0]
+                new_coord[1] += offs[1]
+                if (new_coord[0] not in range(seats.shape[0]) or
+                    new_coord[1] not in range(seats.shape[1])):
+                    break
+                if seats.item(*new_coord):
+                    nearest[coord].append(tuple(new_coord))
+                    break
 
+nearest = np.zeros_like(seats, dtype="object")
+precomp_visible(seats, nearest)
 filled = np.zeros_like(seats, dtype="int")
 new_filled = filled.copy()
 psum = -1
 while (nsum := np.sum(filled)) != psum:
     changed = False
     for coord in itertools.product(*map(range, seats.shape)):
-        na = num_visible(seats, filled, coord)
+        na = sum(filled[c] for c in nearest[coord])
         if seats[coord] and na == 0:
             new_filled[coord] = 1
         elif filled[coord] and na >= 5:

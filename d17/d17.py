@@ -1,8 +1,11 @@
 import itertools
-from collections import defaultdict
-import copy
 
-cube = defaultdict(int)
+class defaultdict(dict):
+    def __getitem__(self, key):
+        if key not in self:
+            return False
+        return super().__getitem__(key)
+cube = defaultdict()
 
 with open("input.txt") as f:
     for y, line in enumerate(f):
@@ -41,12 +44,12 @@ def print_cube(cube):
             print("".join("#" if cube[(x,y,z,0)] else "." for x in range(minbound[0], maxbound[0]+1)))
 
 for i in range(12):
-    ncube = defaultdict(int)
+    ncube = defaultdict()
     for pos in itertools.product(*(range(a, b+1) for a, b in zip(*bounding_cube(cube)))):
         nadj = adjacency(cube, pos)
-        if cube[pos] and nadj in (3, 4):
+        if nadj == 3:
             ncube[pos] = True
-        if not cube[pos] and nadj == 3:
+        elif cube[pos] and nadj == 4:
             ncube[pos] = True
     cube = ncube
 

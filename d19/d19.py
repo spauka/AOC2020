@@ -1,7 +1,7 @@
 import tokenize
 
 lines = []
-with open("input_s") as f:
+with open("input") as f:
     line = []
     for token in tokenize.generate_tokens(f.readline):
         line.append(token)
@@ -53,9 +53,9 @@ class Paren(Node):
 
 def parse_token(inp, loc):
     csym = inp[loc]
-    if csym.type == tokenize.OP and csym.string == "(":
+    if csym.exact_type == tokenize.LPAR:
         expr, end = parse_expr(inp, loc+1)
-        if inp[end].string != ")":
+        if inp[end].exact_type != tokenize.RPAR:
             raise RuntimeError(f"Expecting token: ). Got {inp[end]}.")
         return Paren(expr), end+1
     elif csym.type == tokenize.NUMBER:
@@ -68,11 +68,9 @@ def parse_expr(inp, loc):
     start_node, loc = parse_token(inp, loc)
     while True:
         nsym = inp[loc]
-        if nsym.type in (tokenize.NEWLINE, tokenize.ENDMARKER):
+        if nsym.exact_type in (tokenize.NEWLINE, tokenize.ENDMARKER, tokenize.RPAR):
             return start_node, loc
-        elif nsym.type == tokenize.OP and nsym.string == ")":
-            return start_node, loc
-        elif nsym.type == tokenize.OP and nsym.string in ("+", "*"):
+        elif nsym.exact_type in (tokenize.PLUS, tokenize.STAR):
             end_node, loc = parse_token(inp, loc+1)
             start_node = Operator(nsym, start_node, end_node)
         else:
@@ -86,6 +84,5 @@ def parse(inp):
 values = 0
 for line in lines:
     tree, _ = parse(line)
-    print(tree)
     values += tree.value()
 print(f"Part 1: {values}")

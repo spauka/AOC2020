@@ -21,9 +21,9 @@ class Operator(Node):
         self.left = left
         self.right = right
     def value(self):
-        if self.op.string == "+":
+        if self.op.exact_type == tokenize.PLUS:
             return self.left.value() + self.right.value()
-        elif self.op.string == "*":
+        elif self.op.exact_type == tokenize.STAR:
             return self.left.value() * self.right.value()
         raise NotImplementedError("Unknown Operator")
     def __repr__(self):
@@ -56,9 +56,9 @@ def parse_const(inp, loc):
     Parse bottom level identifiers. These are constants or parenthesized expressions
     """
     csym = inp[loc]
-    if csym.type == tokenize.OP and csym.string == "(":
+    if csym.exact_type == tokenize.LPAR:
         expr, end = parse_multiplications(inp, loc+1)
-        if inp[end].string != ")":
+        if inp[end].exact_type != tokenize.RPAR:
             raise RuntimeError(f"Expecting token: ). Got {inp[end]}.")
         return Paren(expr), end+1
     elif csym.type == tokenize.NUMBER:
@@ -71,7 +71,7 @@ def parse_additions(inp, loc):
     """
     start_node, loc = parse_const(inp, loc)
     cnode = inp[loc]
-    while cnode.type == tokenize.OP and cnode.string == "+":
+    while cnode.exact_type == tokenize.PLUS:
         end_node, loc = parse_const(inp, loc+1)
         start_node = Operator(cnode, start_node, end_node)
         cnode = inp[loc]
@@ -83,7 +83,7 @@ def parse_multiplications(inp, loc):
     """
     start_node, loc = parse_additions(inp, loc)
     cnode = inp[loc]
-    while cnode.type == tokenize.OP and cnode.string == "*":
+    while cnode.exact_type == tokenize.STAR:
         end_node, loc = parse_additions(inp, loc+1)
         start_node = Operator(cnode, start_node, end_node)
         cnode = inp[loc]

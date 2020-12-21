@@ -2,9 +2,10 @@ import math
 import itertools
 from collections import defaultdict
 import numpy as np
+import scipy.signal as signal
 
 class Tile:
-    def __init__(self, tid, data):
+    def __init__(self, tid, data, joins=None):
         self.id = tid
         self.data = np.array(data)
 
@@ -25,14 +26,17 @@ class Tile:
                          self.fre: "FRE",
                          self.fte: "FTE",
                          self.fbe: "FBE"}
-        self.joins = set()
+        if joins is None:
+            self.joins = set()
+        else:
+            self.joins = joins
 
     def rot90(self, n=1):
-        return Tile(self.id, np.rot90(self.data, n))
+        return Tile(self.id, np.rot90(self.data, n), self.joins)
     def flipx(self):
-        return Tile(self.id, np.flipud(self.data))
+        return Tile(self.id, np.flipud(self.data), self.joins)
     def flipy(self):
-        return Tile(self.id, np.fliplr(self.data))
+        return Tile(self.id, np.fliplr(self.data), self.joins)
 
     @staticmethod
     def _edge_to_id(edge):
@@ -43,6 +47,10 @@ class Tile:
         for line in self.data.T:
             lines.append("".join("#" if c else "." for c in line))
         return "\n".join(lines)
+
+def print_grid(grid):
+    for line in grid.T[::-1,:]:
+        print("".join("#" if c else "." for c in line))
 
 # Read in inputs
 tiles = {}
@@ -56,6 +64,9 @@ with open("input") as f:
         tiles[tid] = tile
         for edge_id in tile.edge_ids:
             edge_matches[edge_id].append(tid)
+with open("monster") as f:
+    lines = [l.strip("\n") for l in f.readlines()]
+    monster = np.fromiter((c=="#" for c in itertools.chain(*lines)), dtype="uint8").reshape((3, 20)).T
 
 # Find corners
 for edge_match, tile_ids in edge_matches.items():
@@ -78,10 +89,11 @@ im_size = int(math.sqrt(len(tiles)))
 grid = np.zeros((im_size*8, im_size*8), dtype="uint8")
 tile_placements = np.zeros((im_size, im_size), dtype="uint32")
 
+# Find a candidate top left tile
 for corner in corners:
     tile = tiles[corner]
     if len(edge_matches[tile.be]) == 2 and len(edge_matches[tile.re]) == 2:
-        print(f"Found candidate top left tile: {tile.id}")
+        place_tile(grid, tile, 0, 0)
         tile_placements[0,0] = tile.id
         break
 
@@ -92,7 +104,7 @@ for x, y in itertools.product(range(im_size), repeat=2):
         continue
     if y == 0: # Top of a row
         ptile = tiles[tile_placements[x-1, y]]
-        ntile = [tile for tile in tiles.values() if ptile.re in tile.edge_ids][0]
+        ntile = [tiles[tile] for tile in ptile.joins if ptile.re in tiles[tile].edge_ids][0]
         rot = ntile.edge_ids[ptile.re]
         if rot == "LE":
             pass
@@ -115,7 +127,7 @@ for x, y in itertools.product(range(im_size), repeat=2):
         assert ntile.edge_ids[ptile.re] == "LE"
     else:
         ptile = tiles[tile_placements[x, y-1]]
-        ntile = [tile for tile in tiles.values() if ptile.be in tile.edge_ids][0]
+        ntile = [tiles[tile] for tile in ptile.joins if ptile.be in tiles[tile].edge_ids][0]
         rot = ntile.edge_ids[ptile.be]
         if rot == "TE":
             pass
@@ -126,9 +138,9 @@ for x, y in itertools.product(range(im_size), repeat=2):
         elif rot == "FLE":
             ntile = tiles[ntile.id] = ntile.rot90(1)
         elif rot == "RE":
-            ntile = tiles[ntile.id] = ntile.rot90(-1).flipx()
-        elif rot == "FRE":
             ntile = tiles[ntile.id] = ntile.rot90(-1)
+        elif rot == "FRE":
+            ntile = tiles[ntile.id] = ntile.rot90(-1).flipx()
         elif rot == "BE":
             ntile = tiles[ntile.id] = ntile.rot90(2).flipx()
         elif rot == "FBE":
@@ -136,3 +148,20 @@ for x, y in itertools.product(range(im_size), repeat=2):
         place_tile(grid, ntile, x, y)
         tile_placements[x, y] = ntile.id
         assert ntile.edge_ids[ptile.be] == "TE"
+
+# Figure out the correct orientation
+monster_tiles = np.sum(monster)
+for rot, flipud in itertools.product((-1, 0, 1, 2), (0, 1)):
+    if flipud:
+        ngrid = np.rot90(np.flipud(grid), rot)
+    else:
+        ngrid = np.rot90(grid, rot)
+    conv = signal.convolve2d(ngrid, monster, mode="valid")
+    if conv.max() == monster_tiles: # Found monsters!
+        break
+else:
+    raise RuntimeError("Didnt find any monsters!")
+# Num monsters
+num_tiles = np.sum(grid)
+num_monsters = np.sum(conv == (monster_tiles))
+print(f"Part 2: {int(num_tiles-(monster_tiles*num_monsters))} (Num Monsters: {num_monsters})")

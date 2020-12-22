@@ -58,23 +58,12 @@ for i, c in enumerate(winner.deck):
 print(f"Part 1: {part1}")
 
 # Part 2
-seen_decks = {}
-hits = 0
 def recursive_combat(p1, p2, level=0):
-    start_state = (p1.deckstate, p2.deckstate)
-    if start_state in seen_decks:
-        global hits
-        hits += 1
-        return seen_decks[start_state]
-
-    print(f"Starting recursive game (Level: {level})    ", end="\r")
     seen_stacks = set()
     while p1.ncards and p2.ncards:
         # Check if we've seen this state before
         deckstate = (p1.deckstate, p2.deckstate)
         if deckstate in seen_stacks:
-            print(f"Repeated state! (Level: {level})        ")
-            seen_decks[start_state] = p1
             return p1
         seen_stacks.add(deckstate)
 
@@ -86,6 +75,8 @@ def recursive_combat(p1, p2, level=0):
         else:
             # Recurse!
             p1.push_deck(); p2.push_deck()
+            p1.deck = deque(p1.deckstate[:c1])
+            p2.deck = deque(p2.deckstate[:c2])
             winner = recursive_combat(p1, p2, level+1)
             p1.pop_deck(); p2.pop_deck()
 
@@ -99,14 +90,11 @@ def recursive_combat(p1, p2, level=0):
 
     # Must have run out of cards. Figure out who won!
     if p1.ncards:
-        seen_decks[start_state] = p1
         return p1
-    seen_decks[state_state] = p2
     return p2
 
 p1.restore(); p2.restore()
 winner = recursive_combat(p1, p2)
-print("Winner:", winner)
 part2 = 0
 ncards = winner.ncards
 for i, c in enumerate(winner.deck):

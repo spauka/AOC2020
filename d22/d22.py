@@ -6,7 +6,6 @@ class Player:
         self.player_num = num
         self.deck = deque(cards)
         self.initial = tuple(cards)
-        self.deckstack = []
 
     @classmethod
     def parse_inp(cls, f):
@@ -20,10 +19,6 @@ class Player:
 
     def restore(self):
         self.deck = deque(self.initial)
-    def push_deck(self):
-        self.deckstack.append(tuple(self.deck))
-    def pop_deck(self):
-        self.deck = deque(self.deckstack.pop())
 
     @property
     def deckstate(self):
@@ -74,11 +69,13 @@ def recursive_combat(p1, p2, level=0):
             else: winner = p1
         else:
             # Recurse!
-            p1.push_deck(); p2.push_deck()
-            p1.deck = deque(p1.deckstate[:c1])
-            p2.deck = deque(p2.deckstate[:c2])
+            p1_deck = p1.deck
+            p2_deck = p2.deck
+            p1.deck = deque(deckstate[0][1:c1+1])
+            p2.deck = deque(deckstate[1][1:c2+1])
             winner = recursive_combat(p1, p2, level+1)
-            p1.pop_deck(); p2.pop_deck()
+            p1.deck = p1_deck
+            p2.deck = p2_deck
 
         # Add the winners cards
         if winner is p1:

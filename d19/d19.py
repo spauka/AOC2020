@@ -13,7 +13,7 @@ with open("input_2") as f:
         defn = defn.split('|')
         grammar[rnum] = [tuple(int(x) if x.isnumeric() else x.strip("\"") for x in d.split()) for d in defn]
 
-        # Ensure CNF form
+        # Create lookup table for rules
         if len(grammar[rnum]) == 1 and isinstance(grammar[rnum][0][0], str):
             grammar[rnum] = grammar[rnum][0][0]
             rgrammar[grammar[rnum]].add(rnum)

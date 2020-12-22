@@ -22,6 +22,7 @@ with open("input_2") as f:
                 rgrammar[rule].add(rnum)
     for line in f:
         inputs.append(line.strip())
+inputs.sort(key=lambda x: len(x), reverse=True)
 
 # Transform to CNF form
 # Eliminate unit rules

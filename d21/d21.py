@@ -1,11 +1,10 @@
 import re
-from collections import defaultdict
 from typing import List
 
 class Food:
     def __init__(self, ingredients: List, allergens: List):
-        self.ingredients = set(ingredients)
-        self.allergens = set(allergens)
+        self.ingredients = frozenset(ingredients)
+        self.allergens = frozenset(allergens)
 
     FORMAT = re.compile(r"^((?:(?:[a-z]+) ?)+)\(contains ((?:(?:[a-z]+)(?:, )?)+)\)")
     @classmethod
@@ -33,7 +32,7 @@ for f in food:
         if allergen in allergens:
             allergens[allergen].intersection_update(f.ingredients)
         else:
-            allergens[allergen] = f.ingredients.copy()
+            allergens[allergen] = set(f.ingredients)
 for allergen in allergens:
     possible_allergens.update(allergens[allergen])
 impossible_allergens = ingredients - possible_allergens

@@ -1,5 +1,6 @@
 from collections import defaultdict
 import itertools
+from functools import lru_cache
 
 grammar = {}
 rgrammar = defaultdict(set)
@@ -38,19 +39,22 @@ for rnum, rules in grammar.items():
         else:
             i += 1
 
-def cnf(inp, grammar, rgrammar):
-    check = defaultdict(set)
-    for offs, c in enumerate(inp):
-        check[(1, offs)].update(rgrammar[c])
-    for strlen in range(2, len(inp)+1):
-        for offs in range(len(inp)-strlen+1):
-            for part in range(1, strlen):
-                for comb in itertools.product(check[(part, offs)], check[(strlen-part, offs+part)]):
-                    check[(strlen, offs)].update(rgrammar[comb])
-    return 0 in check[(len(inp), 0)]
+def gen_cnf(grammar, rgrammar):
+    @lru_cache(maxsize=(1<<16))
+    def cnf_mem(inp):
+        if len(inp) == 1:
+            return rgrammar[inp]
+        generating_rules = set()
+        for part in range(1, len(inp)):
+            for comb in itertools.product(cnf_mem(inp[:part]), cnf_mem(inp[part:])):
+                generating_rules.update(rgrammar[comb])
+        return generating_rules
+    return cnf_mem
+
+mem_cnf = gen_cnf(grammar, rgrammar)
 
 part1 = 0
 for i, inp in enumerate(inputs):
-    part1 += cnf(inp, grammar, rgrammar)
+    part1 += (0 in mem_cnf(inp))
     print(i, inp, part1)
 print(f"Part 2: {part1}")

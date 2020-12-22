@@ -39,22 +39,22 @@ for rnum, rules in grammar.items():
         else:
             i += 1
 
-def gen_cnf(grammar, rgrammar):
+def gen_cyk(grammar, rgrammar):
     @lru_cache(maxsize=(1<<16))
-    def cnf_mem(inp):
+    def cyk_mem(inp):
         if len(inp) == 1:
             return rgrammar[inp]
         generating_rules = set()
         for part in range(1, len(inp)):
-            for comb in itertools.product(cnf_mem(inp[:part]), cnf_mem(inp[part:])):
+            for comb in itertools.product(cyk_mem(inp[:part]), cyk_mem(inp[part:])):
                 generating_rules.update(rgrammar[comb])
         return generating_rules
-    return cnf_mem
+    return cyk_mem
 
-mem_cnf = gen_cnf(grammar, rgrammar)
+mem_cyk = gen_cyk(grammar, rgrammar)
 
 part1 = 0
 for i, inp in enumerate(inputs):
-    part1 += (0 in mem_cnf(inp))
+    part1 += (0 in mem_cyk(inp))
     print(i, inp, part1)
 print(f"Part 2: {part1}")

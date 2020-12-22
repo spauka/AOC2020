@@ -5,19 +5,20 @@ import numpy as np
 import scipy.signal as signal
 
 class Tile:
+    ROT = {"L": -1, "T": 0, "R": 1, "B": 2}
     def __init__(self, tid, data, joins=None):
         self.id = tid
         self.data = np.array(data)
 
         # Calculate the ids of each edge
-        self.le = Tile._edge_to_id(self.data[0,:])
+        self.le = Tile._edge_to_id(self.data[0,::-1])
         self.re = Tile._edge_to_id(self.data[-1,:])
         self.te = Tile._edge_to_id(self.data[:,0])
-        self.be = Tile._edge_to_id(self.data[:,-1])
-        self.fle = Tile._edge_to_id(self.data[0,::-1])
+        self.be = Tile._edge_to_id(self.data[::-1,-1])
+        self.fle = Tile._edge_to_id(self.data[0,:])
         self.fre = Tile._edge_to_id(self.data[-1,::-1])
         self.fte = Tile._edge_to_id(self.data[::-1,0])
-        self.fbe = Tile._edge_to_id(self.data[::-1,-1])
+        self.fbe = Tile._edge_to_id(self.data[:,-1])
         self.edge_ids = {self.le: "LE",
                          self.re: "RE",
                          self.te: "TE",
@@ -37,6 +38,15 @@ class Tile:
         return Tile(self.id, np.flipud(self.data), self.joins)
     def flipy(self):
         return Tile(self.id, np.fliplr(self.data), self.joins)
+    def calc_rot(self, start, end):
+        if start == end:
+            return self
+        rot = self.ROT[end[-2]] - self.ROT[start[-2]]
+        if (("F" in start) ^ ("F" in end)):
+            if end[-2] in ("T", "B"):
+                return self.rot90(rot).flipx()
+            return self.rot90(rot).flipy()
+        return self.rot90(rot)
 
     @staticmethod
     def _edge_to_id(edge):
@@ -74,7 +84,6 @@ for edge_match, tile_ids in edge_matches.items():
         continue
     tiles[tile_ids[0]].joins.add(tile_ids[1])
     tiles[tile_ids[1]].joins.add(tile_ids[0])
-
 corners = [x.id for x in tiles.values() if len(x.joins) == 2]
 prod = 1
 for tid in corners:
@@ -106,48 +115,18 @@ for x, y in itertools.product(range(im_size), repeat=2):
         ptile = tiles[tile_placements[x-1, y]]
         ntile = [tiles[tile] for tile in ptile.joins if ptile.re in tiles[tile].edge_ids][0]
         rot = ntile.edge_ids[ptile.re]
-        if rot == "LE":
-            pass
-        elif rot == "FLE":
-            ntile = tiles[ntile.id] = ntile.flipy()
-        elif rot == "TE":
-            ntile = tiles[ntile.id] = ntile.rot90(-1).flipy()
-        elif rot == "FTE":
-            ntile = tiles[ntile.id] = ntile.rot90(-1)
-        elif rot == "RE":
-            ntile = tiles[ntile.id] = ntile.rot90(2).flipy()
-        elif rot == "FRE":
-            ntile = tiles[ntile.id] = ntile.rot90(2)
-        elif rot == "BE":
-            ntile = tiles[ntile.id] = ntile.rot90(1)
-        elif rot == "FBE":
-            ntile = tiles[ntile.id] = ntile.rot90(1).flipy()
+        ntile = tiles[ntile.id] = ntile.calc_rot(rot, "FLE")
         place_tile(grid, ntile, x, y)
         tile_placements[x, y] = ntile.id
-        assert ntile.edge_ids[ptile.re] == "LE"
+        assert ntile.edge_ids[ptile.re] == "FLE" and ptile.re == ntile.fle
     else:
         ptile = tiles[tile_placements[x, y-1]]
         ntile = [tiles[tile] for tile in ptile.joins if ptile.be in tiles[tile].edge_ids][0]
         rot = ntile.edge_ids[ptile.be]
-        if rot == "TE":
-            pass
-        elif rot == "FTE":
-            ntile = tiles[ntile.id] = ntile.flipx()
-        elif rot == "LE":
-            ntile = tiles[ntile.id] = ntile.rot90(1).flipx()
-        elif rot == "FLE":
-            ntile = tiles[ntile.id] = ntile.rot90(1)
-        elif rot == "RE":
-            ntile = tiles[ntile.id] = ntile.rot90(-1)
-        elif rot == "FRE":
-            ntile = tiles[ntile.id] = ntile.rot90(-1).flipx()
-        elif rot == "BE":
-            ntile = tiles[ntile.id] = ntile.rot90(2).flipx()
-        elif rot == "FBE":
-            ntile = tiles[ntile.id] = ntile.rot90(2)
+        ntile = tiles[ntile.id] = ntile.calc_rot(rot, "FTE")
         place_tile(grid, ntile, x, y)
         tile_placements[x, y] = ntile.id
-        assert ntile.edge_ids[ptile.be] == "TE"
+        assert ntile.edge_ids[ptile.be] == "FTE" and ptile.be == ntile.fte
 
 # Figure out the correct orientation
 monster_tiles = np.sum(monster)
